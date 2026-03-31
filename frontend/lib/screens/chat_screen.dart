@@ -82,6 +82,9 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
       ),
+import '../widgets/thought_visualization.dart';
+
+// ...
       body: Column(
         children: [
           Expanded(
@@ -89,22 +92,28 @@ class _ChatScreenState extends State<ChatScreen> {
               builder: (context, provider, _) {
                 _scrollToBottom();
                 if (provider.messages.isEmpty) return _buildEmptyState();
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  itemCount:
-                      provider.messages.length + (provider.isLoading ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == provider.messages.length && provider.isLoading) {
-                      return _buildTypingIndicator();
-                    }
-                    return FadeInUp(
-                      key: ValueKey(provider.messages[index].id),
-                      duration: const Duration(milliseconds: 400),
-                      child: _buildMessageBubble(provider.messages[index]),
-                    );
-                  },
+                return Column(
+                  children: [
+                    if (provider.isThinking)
+                      ThoughtVisualization(logs: provider.thoughtLogs),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        itemCount: provider.messages.length + (provider.isLoading && !provider.isThinking ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (index == provider.messages.length) {
+                             return _buildTypingIndicator();
+                          }
+                          return FadeInUp(
+                            key: ValueKey(provider.messages[index].id),
+                            duration: const Duration(milliseconds: 400),
+                            child: _buildMessageBubble(provider.messages[index]),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 );
               },
             ),

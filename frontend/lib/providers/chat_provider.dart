@@ -7,17 +7,22 @@ import '../services/api_service.dart';
 
 class ChatProvider extends ChangeNotifier {
   final List<ChatMessage> _messages = [];
+  final List<Map<String, String>> _thoughtLogs = [];
   bool _isLoading = false;
+  bool _isThinking = false;
   String? _error;
   final String userId = const Uuid().v4();
 
   List<ChatMessage> get messages => List.unmodifiable(_messages);
+  List<Map<String, String>> get thoughtLogs => List.unmodifiable(_thoughtLogs);
   bool get isLoading => _isLoading;
+  bool get isThinking => _isThinking;
   String? get error => _error;
 
   Future<void> streamMessage(String content) async {
     if (content.trim().isEmpty) return;
     _error = null;
+    _thoughtLogs.clear();
 
     // Add user message
     _messages.add(ChatMessage(
@@ -27,6 +32,8 @@ class ChatProvider extends ChangeNotifier {
       timestamp: DateTime.now(),
     ));
     _isLoading = true;
+    _isThinking = true;
+    notifyListeners();
     
     // Add placeholder for AI response
     final aiMsg = ChatMessage(
@@ -36,7 +43,6 @@ class ChatProvider extends ChangeNotifier {
       timestamp: DateTime.now(),
     );
     _messages.add(aiMsg);
-    notifyListeners();
 
     try {
       final url = Uri.parse('${ApiService.baseUrl}/stream?user_id=$userId&message=${Uri.encodeComponent(content)}');
@@ -47,12 +53,20 @@ class ChatProvider extends ChangeNotifier {
         if (line.trim().isEmpty) continue;
         try {
           final data = json.decode(line);
-          if (data['type'] == 'chunk') {
+          
+          if (data['type'] == 'thought') {
+            _thoughtLogs.add({
+              'agent': data['agent'],
+              'content': data['content'],
+            });
+            notifyListeners();
+          } else if (data['type'] == 'chunk') {
+            _isThinking = false;
             aiMsg.content += data['content'];
             notifyListeners();
           }
         } catch (e) {
-          debugPrint('Stream parse error: $e');
+          debugPrint('Stream parse error: $line -> $e');
         }
       }
     } catch (e) {
@@ -60,6 +74,7 @@ class ChatProvider extends ChangeNotifier {
       aiMsg.content = '⚠️ Error: $_error';
     } finally {
       _isLoading = false;
+      _isThinking = false;
       notifyListeners();
     }
   }

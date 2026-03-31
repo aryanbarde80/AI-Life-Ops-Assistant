@@ -15,17 +15,19 @@ class StreamingService:
 
     async def stream_chat(self, user_id: str, message: str) -> AsyncGenerator[str, None]:
         """
-        Streams live AI response tokens directly from the agentic mesh.
+        Streams live AI response tokens and internal 'Thought' events.
         """
-        yield json.dumps({"type": "status", "content": "Mesh Synchronizing..."}) + "\n"
-        
         try:
             async for chunk in self.coordinator.run_orchestration_stream(user_id, message):
-                yield json.dumps({
-                    "type": "chunk", 
-                    "content": chunk,
-                    "is_last": False
-                }) + "\n"
+                # If chunk is already JSON (from PEC stages)
+                if chunk.startswith('{') and 'type' in chunk:
+                    yield chunk
+                else:
+                    yield json.dumps({
+                        "type": "chunk", 
+                        "content": chunk,
+                        "is_last": False
+                    }) + "\n"
         except Exception as e:
             yield json.dumps({"type": "error", "content": str(e)}) + "\n"
         
