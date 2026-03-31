@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/ai_stories.dart';
 import '../widgets/dynamic_bg.dart';
+import '../widgets/k8s_status_widget.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -39,9 +40,7 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-import '../widgets/k8s_status_widget.dart';
 
-// ...
                     FadeInDown(
                       delay: const Duration(milliseconds: 200),
                       child: const Text(

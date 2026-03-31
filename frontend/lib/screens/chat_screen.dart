@@ -6,6 +6,7 @@ import '../providers/chat_provider.dart';
 import '../models/chat_message.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/thought_visualization.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -82,9 +83,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
       ),
-import '../widgets/thought_visualization.dart';
 
-// ...
       body: Column(
         children: [
           Expanded(
@@ -260,9 +259,6 @@ import '../widgets/thought_visualization.dart';
           ),
         ],
       ),
-    );
-  }
-
     );
   }
 

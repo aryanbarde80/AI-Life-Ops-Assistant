@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'theme/app_theme.dart';
 import 'widgets/command_palette.dart';
 import 'providers/chat_provider.dart';
 import 'providers/task_provider.dart';
@@ -67,7 +68,7 @@ class _MainShellState extends State<MainShell> {
 
     return Shortcuts(
       shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK): const Intent.doNothing(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK): const DoNothingAndStopPropagationIntent(),
       },
       child: Actions(
         actions: {
@@ -100,7 +101,7 @@ class _MainShellState extends State<MainShell> {
                             height: 44,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [AppTheme.primary, AppTheme.accent],
+                                colors: <Color>[AppTheme.primary, AppTheme.accent],
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -111,17 +112,17 @@ class _MainShellState extends State<MainShell> {
                       destinations: const [
                         NavigationRailDestination(
                           icon: Icon(Icons.dashboard_outlined),
-                          selectedIcon: Icon(Icons.dashboard_rounded, color: AppTheme.primary),
+                          selectedIcon: const Icon(Icons.dashboard_rounded, color: AppTheme.primary),
                           label: Text('Dashboard'),
                         ),
                         NavigationRailDestination(
                           icon: Icon(Icons.chat_bubble_outline_rounded),
-                          selectedIcon: Icon(Icons.chat_bubble_rounded, color: AppTheme.primary),
+                          selectedIcon: const Icon(Icons.chat_bubble_rounded, color: AppTheme.primary),
                           label: Text('AI Chat'),
                         ),
                         NavigationRailDestination(
                           icon: Icon(Icons.checklist_outlined),
-                          selectedIcon: Icon(Icons.checklist_rounded, color: AppTheme.primary),
+                          selectedIcon: const Icon(Icons.checklist_rounded, color: AppTheme.primary),
                           label: Text('Tasks'),
                         ),
                       ],
