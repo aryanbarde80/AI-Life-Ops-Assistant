@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="AI Life Ops Assistant — Your personal AI-powered productivity coach for task management, goal setting, and life optimization.">
+  <meta name="theme-color" content="#0A0E1A">
+  <title>AI Life Ops Assistant</title>
+  <link rel="icon" type="image/png" href="icons/Icon-192.png"/>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      background-color: #0A0E1A;
+      margin: 0;
+      padding: 0;
+      overscroll-behavior: none;
+    }
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #0A0E1A;
+      color: #F1F5F9;
+      font-family: 'Segoe UI', sans-serif;
+      gap: 20px;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid #1E293B;
+      border-top: 3px solid #6366F1;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    #loading p {
+      color: #94A3B8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading AI Life Ops Assistant...</p>
+  </div>
+
+  <script>
+    window.addEventListener('flutter-first-frame', () => {
+      const loading = document.getElementById('loading');
+      if (loading) loading.style.display = 'none';
+    });
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

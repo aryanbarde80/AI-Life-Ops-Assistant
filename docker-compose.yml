@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  # ──────────────────────────────────────────────
+  #  FastAPI Backend
+  # ──────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai_life_ops_backend
+    ports:
+      - "10000:10000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      FIREBASE_CONFIG: ${FIREBASE_CONFIG}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # ──────────────────────────────────────────────
+  #  Flutter Web Frontend
+  # ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ai_life_ops_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
