@@ -11,7 +11,7 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.recovery_timeout = recovery_timeout
         self.failures = 0
-        self.last_failure_time = 0
+        self.last_failure_time: float = 0.0
         self.state = "CLOSED"  # CLOSED, OPEN, HALF-OPEN
 
     def __call__(self, func):
