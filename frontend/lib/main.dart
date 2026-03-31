@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:flutter/services.dart';
+import 'widgets/command_palette.dart';
 import 'providers/chat_provider.dart';
 import 'providers/task_provider.dart';
 import 'screens/chat_screen.dart';
@@ -36,10 +37,6 @@ class AiLifeOpsApp extends StatelessWidget {
     );
   }
 }
-
-import 'widgets/command_palette.dart';
-import 'package:flutter/services.dart';
-
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
