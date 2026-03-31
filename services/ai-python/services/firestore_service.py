@@ -8,7 +8,6 @@ from google.cloud.firestore_v1.async_client import AsyncClient
 
 _db: Optional[AsyncClient] = None
 
-
 def _initialize_firestore() -> AsyncClient:
     """Initialize Firebase Admin SDK from the FIREBASE_CONFIG env variable."""
     global _db
@@ -44,173 +43,156 @@ def get_db() -> AsyncClient:
     return _initialize_firestore()
 
 
-async def save_message(user_id: str, role: str, content: str) -> None:
-    """
-    Save a single chat message to Firestore.
+class FirestoreService:
+    def __init__(self):
+        self.db = get_db()
 
-    Collection path: users/{user_id}/messages (auto-ID)
-    Document fields: role, content, timestamp
-    """
-    try:
-        db = get_db()
-        messages_ref = db.collection("users").document(user_id).collection("messages")
-        await messages_ref.add({
-            "role": role,
-            "content": content,
-            "timestamp": firestore.SERVER_TIMESTAMP,
-        })
-    except Exception as e:
-        # Non-fatal: log but don't break the chat flow
-        print(f"[Firestore] Warning: could not save message for {user_id}: {e}")
+    async def save_message(self, user_id: str, role: str, content: str) -> None:
+        """Saves a single chat message to Firestore."""
+        try:
+            messages_ref = self.db.collection("users").document(user_id).collection("messages")
+            await messages_ref.add({
+                "role": role,
+                "content": content,
+                "timestamp": firestore.SERVER_TIMESTAMP,
+            })
+        except Exception as e:
+            print(f"[Firestore] Warning: could not save message for {user_id}: {e}")
 
+    async def get_history(self, user_id: str, limit: int = 50):
+        """Retrieves history for a user."""
+        try:
+            messages_ref = (
+                self.db.collection("users")
+                .document(user_id)
+                .collection("messages")
+                .order_by("timestamp")
+                .limit(limit)
+            )
+            docs = messages_ref.stream()
+            history = []
+            async for doc in docs:
+                history.append(doc.to_dict())
+            return history
+        except Exception as e:
+            print(f"[Firestore] Warning: could not retrieve history for {user_id}: {e}")
+            return []
 
-async def get_history(user_id: str, limit: int = 50):
-    """
-    Retrieve the last `limit` messages for a user, ordered by timestamp.
+    async def save_task(self, user_id: str, task: dict) -> str:
+        """Saves a task to Firestore."""
+        try:
+            tasks_ref = self.db.collection("users").document(user_id).collection("tasks")
+            doc_ref = await tasks_ref.add({
+                **task,
+                "created_at": firestore.SERVER_TIMESTAMP,
+                "completed": task.get("completed", False),
+            })
+            return doc_ref[1].id
+        except Exception as e:
+            print(f"[Firestore] Warning: could not save task for {user_id}: {e}")
+            return ""
 
-    Returns a list of dicts: [{role, content, timestamp}, ...]
-    """
-    try:
-        db = get_db()
-        messages_ref = (
-            db.collection("users")
-            .document(user_id)
-            .collection("messages")
-            .order_by("timestamp")
-            .limit(limit)
-        )
-        docs = messages_ref.stream()
-        history = []
-        async for doc in docs:
-            history.append(doc.to_dict())
-        return history
-    except Exception as e:
-        print(f"[Firestore] Warning: could not retrieve history for {user_id}: {e}")
-        return []
+    async def get_tasks(self, user_id: str):
+        """Retrieves tasks for a user."""
+        try:
+            tasks_ref = (
+                self.db.collection("users")
+                .document(user_id)
+                .collection("tasks")
+                .order_by("created_at")
+            )
+            docs = tasks_ref.stream()
+            tasks = []
+            async for doc in docs:
+                task_data = doc.to_dict()
+                task_data["id"] = doc.id
+                tasks.append(task_data)
+            return tasks
+        except Exception as e:
+            print(f"[Firestore] Warning: could not retrieve tasks for {user_id}: {e}")
+            return []
 
+    async def get_user_stats(self, user_id: str) -> dict:
+        """Retrieves XP, Level, and Streak stats for a user."""
+        try:
+            doc = await self.db.collection("users").document(user_id).get()
+            if doc.exists:
+                data = doc.to_dict()
+                return {
+                    "xp": data.get("xp", 0),
+                    "level": data.get("level", 1),
+                    "streak": data.get("streak", 0),
+                    "last_active": data.get("last_active"),
+                }
+            return {"xp": 0, "level": 1, "streak": 0}
+        except Exception as e:
+            print(f"[Firestore] Stats error: {e}")
+            return {"xp": 0, "level": 1, "streak": 0}
 
-async def save_task(user_id: str, task: dict) -> str:
-    """
-    Save a task to Firestore.
-
-    Collection path: users/{user_id}/tasks
-    Returns the new document ID.
-    """
-    try:
-        db = get_db()
-        tasks_ref = db.collection("users").document(user_id).collection("tasks")
-        doc_ref = await tasks_ref.add({
-            **task,
-            "created_at": firestore.SERVER_TIMESTAMP,
-            "completed": task.get("completed", False),
-        })
-        return doc_ref[1].id
-    except Exception as e:
-        print(f"[Firestore] Warning: could not save task for {user_id}: {e}")
-        return ""
-
-
-async def get_tasks(user_id: str):
-    """
-    Retrieve all tasks for a user.
-
-    Returns list of dicts including document id.
-    """
-    try:
-        db = get_db()
-        tasks_ref = (
-            db.collection("users")
-            .document(user_id)
-            .collection("tasks")
-            .order_by("created_at")
-        )
-        docs = tasks_ref.stream()
-        tasks = []
-        async for doc in docs:
-            task_data = doc.to_dict()
-            task_data["id"] = doc.id
-            tasks.append(task_data)
-        return tasks
-    except Exception as e:
-        print(f"[Firestore] Warning: could not retrieve tasks for {user_id}: {e}")
-        return []
-
-async def get_user_stats(self, user_id: str) -> dict:
-    """Retrieves XP, Level, and Streak stats for a user."""
-    try:
-        db = get_db()
-        doc = await db.collection("users").document(user_id).get()
-        if doc.exists:
-            data = doc.to_dict()
-            return {
-                "xp": data.get("xp", 0),
-                "level": data.get("level", 1),
-                "streak": data.get("streak", 0),
-                "last_active": data.get("last_active"),
-            }
-        return {"xp": 0, "level": 1, "streak": 0}
-    except Exception as e:
-        print(f"[Firestore] Stats error: {e}")
-        return {"xp": 0, "level": 1, "streak": 0}
-
-async def add_xp(self, user_id: str, amount: int) -> dict:
-    """Increments user XP and handles leveling logic (1000 XP per level)."""
-    try:
-        db = get_db()
-        user_ref = db.collection("users").document(user_id)
-        
-        @firestore.async_transactional
-        async def update_in_transaction(transaction, ref):
-            snapshot = await ref.get(transaction=transaction)
-            current_xp = snapshot.get("xp") if snapshot.exists else 0
-            new_xp = current_xp + amount
-            new_level = (new_xp // 1000) + 1
+    async def add_xp(self, user_id: str, amount: int) -> dict:
+        """Increments user XP and handles leveling logic (1000 XP per level)."""
+        try:
+            user_ref = self.db.collection("users").document(user_id)
             
-            transaction.set(ref, {
-                "xp": new_xp,
-                "level": new_level,
-                "last_active": firestore.SERVER_TIMESTAMP,
-            }, merge=True)
-            return {"xp": new_xp, "level": new_level}
+            @firestore.async_transactional
+            async def update_in_transaction(transaction, ref):
+                snapshot = await ref.get(transaction=transaction)
+                current_xp = snapshot.get("xp") if snapshot.exists else 0
+                new_xp = current_xp + amount
+                new_level = (new_xp // 1000) + 1
+                
+                transaction.set(ref, {
+                    "xp": new_xp,
+                    "level": new_level,
+                    "last_active": firestore.SERVER_TIMESTAMP,
+                }, merge=True)
+                return {"xp": new_xp, "level": new_level}
 
-        return await update_in_transaction(db.transaction(), user_ref)
-    except Exception as e:
-        print(f"[Firestore] XP update failed: {e}")
-        return {}
+            return await update_in_transaction(self.db.transaction(), user_ref)
+        except Exception as e:
+            print(f"[Firestore] XP update failed: {e}")
+            return {}
 
+    async def get_recent_context(self, user_id: str, limit: int = 5) -> str:
+        """Fetches recent tasks and messages to provide context for RAG."""
+        try:
+            # Get active tasks
+            tasks_ref = (
+                self.db.collection("users")
+                .document(user_id)
+                .collection("tasks")
+                .where("completed", "==", False)
+                .limit(limit)
+            )
+            task_docs = await tasks_ref.get()
+            
+            # Get recent messages
+            msgs_ref = (
+                self.db.collection("users")
+                .document(user_id)
+                .collection("messages")
+                .order_by("timestamp", direction=firestore.Query.DESCENDING)
+                .limit(limit)
+            )
+            msg_docs = await msgs_ref.get()
+            
+            context = "[PERSONAL CONTEXT]\n"
+            if task_docs:
+                context += "ACTIVE OBJECTIVES: " + ", ".join([d.to_dict().get("title", "") for d in task_docs]) + "\n"
+            if msg_docs:
+                context += "RECENT HISTORY: " + " | ".join([d.to_dict().get("content", "")[:50] for d in msg_docs]) + "\n"
+            
+            return context
+        except Exception as e:
+            print(f"[Firestore] RAG context error: {e}")
+            return ""
 
-async def get_recent_context(user_id: str, limit: int = 5) -> str:
-    """Fetches recent tasks and messages to provide context for RAG."""
-    try:
-        db = get_db()
-        
-        # Get active tasks
-        tasks_ref = (
-            db.collection("users")
-            .document(user_id)
-            .collection("tasks")
-            .where("completed", "==", False)
-            .limit(limit)
-        )
-        task_docs = await tasks_ref.get()
-        
-        # Get recent messages
-        msgs_ref = (
-            db.collection("users")
-            .document(user_id)
-            .collection("messages")
-            .order_by("timestamp", direction=firestore.Query.DESCENDING)
-            .limit(limit)
-        )
-        msg_docs = await msgs_ref.get()
-        
-        context = "[PERSONAL CONTEXT]\n"
-        if task_docs:
-            context += "ACTIVE OBJECTIVES: " + ", ".join([d.to_dict().get("title", "") for d in task_docs]) + "\n"
-        if msg_docs:
-            context += "RECENT HISTORY: " + " | ".join([d.to_dict().get("content", "")[:50] for d in msg_docs]) + "\n"
-        
-        return context
-    except Exception as e:
-        print(f"[Firestore] RAG context error: {e}")
-        return ""
+# Provide standalone functions for backward compatibility
+_shared_fs = FirestoreService()
+async def save_message(user_id, role, content): return await _shared_fs.save_message(user_id, role, content)
+async def get_history(user_id, limit=50): return await _shared_fs.get_history(user_id, limit)
+async def save_task(user_id, task): return await _shared_fs.save_task(user_id, task)
+async def get_tasks(user_id): return await _shared_fs.get_tasks(user_id)
+async def get_user_stats(user_id): return await _shared_fs.get_user_stats(user_id)
+async def add_xp(user_id, amount): return await _shared_fs.add_xp(user_id, amount)
+async def get_recent_context(user_id, limit=5): return await _shared_fs.get_recent_context(user_id, limit)
