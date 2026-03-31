@@ -39,6 +39,9 @@ class DashboardScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
+import '../widgets/k8s_status_widget.dart';
+
+// ...
                     FadeInDown(
                       delay: const Duration(milliseconds: 200),
                       child: const Text(
@@ -46,8 +49,11 @@ class DashboardScreen extends StatelessWidget {
                         style: TextStyle(color: AppTheme.textSecondary, letterSpacing: 0.1),
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    const K8sStatusWidget(),
                     const SizedBox(height: 32),
                     _buildStatsGrid(context),
+// ...
                     const SizedBox(height: 40),
                     _buildUserOverview(context),
                     const SizedBox(height: 40),

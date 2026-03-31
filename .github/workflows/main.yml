@@ -1,0 +1,29 @@
+name: Enterprise CI/CD Masterpiece
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Security Scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          exit-code: '0' # Don't block for now, but show results
+          severity: 'CRITICAL,HIGH'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: K8s Validation
+        run: |
+          docker run --rm -v $(pwd)/k8s:/k8s bitnami/kubectl:latest --dry-run-client -f /k8s apply

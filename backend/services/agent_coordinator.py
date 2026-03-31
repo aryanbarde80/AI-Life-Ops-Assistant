@@ -6,9 +6,15 @@ from services.firestore_service import FirestoreService
 from services.decision_engine import DecisionEngine
 from services.github_service import GithubService
 from services.ml_service import MLService
+from middleware.circuit_breaker import CircuitBreaker
 from domain.models import SystemHealth
 
+# Enterprise Resilience - Circuit Breakers
+llm_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60)
+research_breaker = CircuitBreaker(failure_threshold=3, recovery_timeout=30)
+
 class AgentCoordinator:
+    # ... rest of class ...
     """
     Lead Orchestrator using Planner-Executor-Critic (PEC) Mesh.
     Autonomous multi-stage reasoning for Jarvis-level intelligence.
@@ -29,38 +35,42 @@ class AgentCoordinator:
     async def run_orchestration_stream(self, user_id: str, query: str) -> AsyncGenerator[str, None]:
         """Autonomous reasoning with 'Thought' event streaming."""
         
-        # --- Stage 1: PLANNING ---
-        yield json.dumps({"type": "thought", "agent": "Planner", "content": "Decomposing objective into atomic missions..."}) + "\n"
-        await asyncio.sleep(0.5)
-        
-        # --- Stage 2: DEEP INTEL (ML) ---
-        prob = await self.ml_intel.predict_task_success(user_id, query)
-        yield json.dumps({"type": "thought", "agent": "DeepIntel", "content": f"Neural prediction: {int(prob*100)}% completion probability detected."}) + "\n"
-        
-        if "github" in query.lower() or "repo" in query.lower():
-            yield json.dumps({"type": "thought", "agent": "GithubIntel", "content": "Scanning repository velocity and complexity patterns..."}) + "\n"
-            await asyncio.sleep(0.8)
+        try:
+            # --- Stage 1: PLANNING ---
+            yield json.dumps({"type": "thought", "agent": "Planner", "content": "Decomposing objective into atomic missions..."}) + "\n"
+            await asyncio.sleep(0.5)
+            
+            # --- Stage 2: DEEP INTEL (ML) ---
+            # Protected by LLM breaker logic internally
+            prob = await self.ml_intel.predict_task_success(user_id, query)
+            yield json.dumps({"type": "thought", "agent": "DeepIntel", "content": f"Neural prediction: {int(prob*100)}% completion probability detected."}) + "\n"
+            
+            if "github" in query.lower() or "repo" in query.lower():
+                yield json.dumps({"type": "thought", "agent": "GithubIntel", "content": "Scanning repository velocity and complexity patterns..."}) + "\n"
+                await asyncio.sleep(0.8)
 
-        # --- Stage 3: EXECUTION ---
-        yield json.dumps({"type": "thought", "agent": "Executor", "content": "Scanning knowledge mesh and retrieving historical context..."}) + "\n"
-        await asyncio.sleep(1.0)
-        
-        # Integrate Decision Engine if objective is a choice
-        if "?" in query or "should" in query.lower():
-             yield json.dumps({"type": "thought", "agent": "DecisionEngine", "content": "Evaluating risk-reward scenarios..."}) + "\n"
-             await asyncio.sleep(0.5)
+            # --- Stage 3: EXECUTION ---
+            yield json.dumps({"type": "thought", "agent": "Executor", "content": "Scanning knowledge mesh and retrieving historical context..."}) + "\n"
+            await asyncio.sleep(1.0)
+            
+            # Integrate Decision Engine if objective is a choice
+            if "?" in query or "should" in query.lower():
+                 yield json.dumps({"type": "thought", "agent": "DecisionEngine", "content": "Evaluating risk-reward scenarios..."}) + "\n"
+                 await asyncio.sleep(0.5)
 
-        # --- Stage 3: CRITIC / REFINEMENT ---
-        yield json.dumps({"type": "thought", "agent": "Critic", "content": "Filtering hallucinations and verifying goal alignment..."}) + "\n"
-        await asyncio.sleep(0.6)
+            # --- Stage 4: CRITIC / REFINEMENT ---
+            yield json.dumps({"type": "thought", "agent": "Critic", "content": "Filtering hallucinations and verifying goal alignment..."}) + "\n"
+            await asyncio.sleep(0.6)
 
-        # --- FINAL SYNTHESIS ---
-        chain = _get_or_create_chain(user_id)
-        async for chunk in chain.astream({"input": query}):
-            if "response" in chunk:
-                yield chunk["response"]
-            elif isinstance(chunk, str):
-                yield chunk
+            # --- FINAL SYNTHESIS ---
+            chain = _get_or_create_chain(user_id)
+            async for chunk in chain.astream({"input": query}):
+                if "response" in chunk:
+                    yield chunk["response"]
+                elif isinstance(chunk, str):
+                    yield chunk
+        except Exception as e:
+            yield json.dumps({"type": "error", "content": f"Mesh Critical Failure: {str(e)}"}) + "\n"
 
     async def run_orchestration(self, user_id: str, query: str) -> str:
         """Blocking fallback."""
