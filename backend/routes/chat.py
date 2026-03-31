@@ -4,8 +4,22 @@ from pydantic import BaseModel
 from services.agent_coordinator import AgentCoordinator
 from services.firestore_service import save_message
 
+from fastapi.responses import StreamingResponse
+from services.streaming_service import StreamingService
+
 router = APIRouter()
 coordinator = AgentCoordinator()
+streamer = StreamingService()
+
+@router.get("/stream")
+async def stream_chat(user_id: str, message: str):
+    """
+    Server-Sent Events (SSE) endpoint for streaming AI responses.
+    """
+    return StreamingResponse(
+        streamer.stream_chat(user_id, message),
+        media_type="text/event-stream"
+    )
 
 class ChatRequest(BaseModel):
     message: str
