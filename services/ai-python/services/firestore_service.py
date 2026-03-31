@@ -10,51 +10,77 @@ _db: Optional[AsyncClient] = None
 
 def _initialize_firestore() -> AsyncClient:
     """Initialize Firebase Admin SDK from the FIREBASE_CONFIG env variable."""
-    global _db
-
-    if _db is not None:
-        return _db
-
     firebase_config = os.environ.get("FIREBASE_CONFIG")
+    
     if not firebase_config:
-        raise ValueError(
-            "FIREBASE_CONFIG environment variable not set. "
-            "Set it to the raw Firebase service account JSON or its base64-encoded string."
-        )
+        print("[Firestore] Warning: FIREBASE_CONFIG not set. System running in OFFLINE mode (no persistence).")
+        return None
+
+    service_account_dict = None
+
+    # Helper to attempt JSON extraction if someone pasted JS code
+    def extract_json(s: str) -> Optional[dict]:
+        import re
+        try:
+            # Look for the first { and last }
+            match = re.search(r'\{.*\}', s, re.DOTALL)
+            if match:
+                # Still might need fixing if it's JS with unquoted keys
+                return json.loads(match.group(0))
+        except:
+            pass
+        return None
 
     try:
-        # Try to parse as raw JSON first
+        # 1. Try direct JSON
         service_account_dict = json.loads(firebase_config)
     except json.JSONDecodeError:
-        # Fallback to base64 decoding if raw JSON parsing fails
-        try:
-            decoded_bytes = base64.b64decode(firebase_config)
-            service_account_json = decoded_bytes.decode("utf-8")
-            service_account_dict = json.loads(service_account_json)
-        except Exception as e:
-            raise ValueError(f"Failed to parse FIREBASE_CONFIG (tried raw JSON and Base64): {e}")
+        # 2. Try to extract JSON if it looks like JS code
+        service_account_dict = extract_json(firebase_config)
+        
+        if not service_account_dict:
+            # 3. Fallback to base64
+            try:
+                decoded_bytes = base64.b64decode(firebase_config)
+                service_account_json = decoded_bytes.decode("utf-8")
+                service_account_dict = json.loads(service_account_json)
+            except Exception:
+                print("[Firestore] Error: Could not parse FIREBASE_CONFIG. Check your Render environment variables.")
+                return None
 
-    if not firebase_admin._apps:
-        cred = credentials.Certificate(service_account_dict)
-        firebase_admin.initialize_app(cred)
+    if not service_account_dict:
+        return None
 
-    _db = firestore.AsyncClient(
-        project=service_account_dict.get("project_id")
-    )
-    return _db
+    try:
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(service_account_dict)
+            firebase_admin.initialize_app(cred)
+
+        _db = firestore.AsyncClient(
+            project=service_account_dict.get("project_id", "bookify-c6c1b") # Fallback to user project id
+        )
+        return _db
+    except Exception as e:
+        print(f"[Firestore] Failed to initialize Admin SDK: {e}")
+        return None
 
 
-def get_db() -> AsyncClient:
-    """Return Firestore async client, initializing if necessary."""
-    return _initialize_firestore()
+def get_db() -> Optional[AsyncClient]:
+    """Return Firestore async client, initializing if necessary. Returns None if unreachable."""
+    try:
+        return _initialize_firestore()
+    except Exception:
+        return None
 
 
 class FirestoreService:
     def __init__(self):
         self.db = get_db()
+        self.enabled = (self.db is not None)
 
     async def save_message(self, user_id: str, role: str, content: str) -> None:
         """Saves a single chat message to Firestore."""
+        if not self.enabled: return
         try:
             messages_ref = self.db.collection("users").document(user_id).collection("messages")
             await messages_ref.add({
