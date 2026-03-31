@@ -7,15 +7,22 @@ from services.firestore_service import save_message
 from fastapi.responses import StreamingResponse
 from services.streaming_service import StreamingService
 
+from services.automation_engine import AutomationEngine
+
 router = APIRouter()
 coordinator = AgentCoordinator()
 streamer = StreamingService()
+automation = AutomationEngine()
 
 @router.get("/stream")
 async def stream_chat(user_id: str, message: str):
     """
     Server-Sent Events (SSE) endpoint for streaming AI responses.
+    This also triggers the Automation Engine for background extraction.
     """
+    # Background task extraction
+    asyncio.create_task(automation.scan_for_tasks(user_id, message))
+    
     return StreamingResponse(
         streamer.stream_chat(user_id, message),
         media_type="text/event-stream"

@@ -8,7 +8,7 @@ import 'screens/chat_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/tasks_screen.dart';
 import 'screens/landing_page.dart';
-import 'theme/app_theme.dart';
+import 'providers/metrics_provider.dart';
 
 void main() {
   runApp(
@@ -16,6 +16,7 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => SystemMetricsProvider()..startListening()),
       ],
       child: const AiLifeOpsApp(),
     ),

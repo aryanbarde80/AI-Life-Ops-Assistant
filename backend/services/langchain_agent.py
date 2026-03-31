@@ -50,9 +50,15 @@ def _get_llm(use_ollama: bool = False) -> Any:
 
     raise ValueError("System Shutdown: No LLM available.")
 
+from services.ai_tools import AI_TOOLS
+
 def _create_chain_for_user(user_id: str) -> ConversationChain:
-    """Enterprise chain creation with modular prompts."""
+    """Enterprise chain creation with Tools and modular prompts."""
     llm = _get_llm()
+    
+    # Bind tools to the LLM (requires modern LangChain/OpenAI)
+    # Note: LlamaCpp might need specialized prompting for tools
+    llm_with_tools = llm.bind_tools(AI_TOOLS)
 
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(SYSTEM_PROMPT),
@@ -61,7 +67,7 @@ def _create_chain_for_user(user_id: str) -> ConversationChain:
     ])
 
     memory = ConversationBufferMemory(return_messages=True)
-    return ConversationChain(llm=llm, prompt=prompt, memory=memory, verbose=False)
+    return ConversationChain(llm=llm_with_tools, prompt=prompt, memory=memory, verbose=False)
 
 
 def _get_or_create_chain(user_id: str) -> ConversationChain:
