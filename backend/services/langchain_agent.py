@@ -84,15 +84,21 @@ def _get_or_create_chain(user_id: str) -> ConversationChain:
 
 async def get_agent_response(user_id: str, message: str) -> str:
     """
-    Generate an AI response.
-    If OpenAI fails, it will attempt to re-init with local fallback.
+    Generate an AI response with RAG context.
     """
+    from services.firestore_service import FirestoreService
+    fs = FirestoreService()
+    
+    # RAG: Fetch relevant personal context
+    context = await fs.get_recent_context(user_id)
+    enriched_message = f"{context}\n\nUSER MESSAGE: {message}"
+    
     try:
         chain = _get_or_create_chain(user_id)
         loop = asyncio.get_event_loop()
         response = await loop.run_in_executor(
             None,
-            lambda: chain.predict(input=message),
+            lambda: chain.predict(input=enriched_message),
         )
         return response
     except Exception as e:

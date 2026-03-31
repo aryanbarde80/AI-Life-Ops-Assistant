@@ -134,3 +134,40 @@ async def get_tasks(user_id: str):
     except Exception as e:
         print(f"[Firestore] Warning: could not retrieve tasks for {user_id}: {e}")
         return []
+
+
+async def get_recent_context(user_id: str, limit: int = 5) -> str:
+    """Fetches recent tasks and messages to provide context for RAG."""
+    try:
+        db = get_db()
+        
+        # Get active tasks
+        tasks_ref = (
+            db.collection("users")
+            .document(user_id)
+            .collection("tasks")
+            .where("completed", "==", False)
+            .limit(limit)
+        )
+        task_docs = await tasks_ref.get()
+        
+        # Get recent messages
+        msgs_ref = (
+            db.collection("users")
+            .document(user_id)
+            .collection("messages")
+            .order_by("timestamp", direction=firestore.Query.DESCENDING)
+            .limit(limit)
+        )
+        msg_docs = await msgs_ref.get()
+        
+        context = "[PERSONAL CONTEXT]\n"
+        if task_docs:
+            context += "ACTIVE OBJECTIVES: " + ", ".join([d.to_dict().get("title", "") for d in task_docs]) + "\n"
+        if msg_docs:
+            context += "RECENT HISTORY: " + " | ".join([d.to_dict().get("content", "")[:50] for d in msg_docs]) + "\n"
+        
+        return context
+    except Exception as e:
+        print(f"[Firestore] RAG context error: {e}")
+        return ""
