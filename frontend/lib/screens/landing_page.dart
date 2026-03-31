@@ -174,8 +174,8 @@ class LandingPage extends StatelessWidget {
           const SizedBox(height: 24),
           FadeInUp(
             delay: const Duration(milliseconds: 400),
-            child: SizedBox(
-              maxWidth: 700,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 700),
               child: Text(
                 'AI Life Ops Assistant is not just an app. It is your second brain. '
                 'Seamlessly integrated with LangChain, OpenAI, and a self-healing local engine.',

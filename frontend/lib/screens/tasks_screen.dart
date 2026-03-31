@@ -216,8 +216,7 @@ class _TasksScreenState extends State<TasksScreen> {
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: AlertDialog(
           backgroundColor: AppTheme.surface.withOpacity(0.9),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), border: Border.all(color: AppTheme.border)),
-          title: const Text('New Objective', style: TextStyle(fontWeight: FontWeight.w900)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: const BorderSide(color: AppTheme.border)),          title: const Text('New Objective', style: TextStyle(fontWeight: FontWeight.w900)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

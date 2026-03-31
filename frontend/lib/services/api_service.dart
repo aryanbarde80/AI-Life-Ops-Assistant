@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class ApiService {
   // When running in a unified container, use relative paths.
   // For local development, this can be overridden with --dart-define=API_BASE_URL=http://localhost:10000
-  static const String _baseUrl =
+  static const String baseUrl =
       String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
   static Future<String> sendMessage({
@@ -12,7 +12,7 @@ class ApiService {
     required String message,
   }) async {
     // If _baseUrl is empty, it will use the current origin in the browser.
-    final uri = Uri.parse('${_baseUrl.isEmpty ? "" : _baseUrl}/chat');
+    final uri = Uri.parse('${baseUrl.isEmpty ? "" : baseUrl}/chat');
 
     try {
       final response = await http.post(
@@ -43,7 +43,7 @@ class ApiService {
   static Future<bool> checkHealth() async {
     try {
       final response = await http
-          .get(Uri.parse('$_baseUrl/health'))
+          .get(Uri.parse('$baseUrl/health'))
           .timeout(const Duration(seconds: 5));
       return response.statusCode == 200;
     } catch (_) {
