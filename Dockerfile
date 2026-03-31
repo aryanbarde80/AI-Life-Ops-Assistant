@@ -22,13 +22,21 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
+    cmake \
     libffi-dev \
     libssl-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python requirements
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Download tiny local LLM (Qwen2.5-0.5B-Instruct-GGUF)
+RUN mkdir -p models && \
+    curl -L "https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct-GGUF/resolve/main/qwen2.5-0.5b-instruct-q4_k_m.gguf?download=true" \
+    -o models/qwen2.5-0.5b-instruct-q4_k_m.gguf
 
 # Copy backend code
 COPY backend .

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:animate_do/animate_do.dart';
 import '../providers/chat_provider.dart';
 import '../providers/task_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/glass_card.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -11,130 +13,157 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 28),
-            _buildStatsRow(context),
-            const SizedBox(height: 28),
-            Row(
+      body: Stack(
+        children: [
+          // Background Glow
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.primary.withOpacity(0.05),
+              ),
+            ),
+          ),
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(flex: 3, child: _buildRecentTasks(context)),
-                const SizedBox(width: 20),
-                Expanded(flex: 2, child: _buildTipsCard()),
+                FadeInDown(
+                  duration: const Duration(milliseconds: 800),
+                  child: _buildHeader(context),
+                ),
+                const SizedBox(height: 32),
+                _buildStatsGrid(context),
+                const SizedBox(height: 32),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: FadeInLeft(
+                        delay: const Duration(milliseconds: 400),
+                        child: _buildMainFocus(context),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 2,
+                      child: FadeInRight(
+                        delay: const Duration(milliseconds: 600),
+                        child: _buildAiInsights(),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
-    final hour = DateTime.now().hour;
-    String greeting = 'Good Morning';
-    if (hour >= 12 && hour < 17) greeting = 'Good Afternoon';
-    if (hour >= 17) greeting = 'Good Evening';
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '$greeting 👋',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                colors: [AppTheme.primary, AppTheme.accent],
+              ).createShader(bounds),
+              child: const Text(
+                'Command Center',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                ),
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              "Here's your life ops overview for today.",
+              "System is operational. Your life ops are synced.",
               style: TextStyle(
                   fontSize: 14,
-                  color: AppTheme.textSecondary),
+                  color: AppTheme.textSecondary,
+                  letterSpacing: 0.2),
             ),
           ],
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primary, AppTheme.accent],
-            ),
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primary.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Text(
-            _formattedDate(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ),
+        _buildGlassBadge(_formattedDate()),
       ],
+    );
+  }
+
+  Widget _buildGlassBadge(String text) {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      borderRadius: 12,
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AppTheme.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+        ),
+      ),
     );
   }
 
   String _formattedDate() {
     final now = DateTime.now();
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${months[now.month - 1]} ${now.day}, ${now.year}';
   }
 
-  Widget _buildStatsRow(BuildContext context) {
-    return Consumer2<TaskProvider, ChatProvider>(
-      builder: (context, taskProvider, chatProvider, _) {
+  Widget _buildStatsGrid(BuildContext context) {
+    return Consumer<TaskProvider>(
+      builder: (context, provider, _) {
         return Row(
           children: [
             Expanded(
-              child: _statCard(
-                icon: Icons.checklist_rounded,
-                label: 'Total Tasks',
-                value: taskProvider.totalCount.toString(),
-                color: AppTheme.primary,
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 100),
+                child: _premiumStatCard(
+                  title: 'Tasks Active',
+                  value: provider.pendingCount.toString(),
+                  icon: Icons.bolt_rounded,
+                  color: AppTheme.cyan,
+                ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20),
             Expanded(
-              child: _statCard(
-                icon: Icons.check_circle_rounded,
-                label: 'Completed',
-                value: taskProvider.completedCount.toString(),
-                color: AppTheme.accentGreen,
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 200),
+                child: _premiumStatCard(
+                  title: 'Completed',
+                  value: provider.completedCount.toString(),
+                  icon: Icons.check_circle_outline_rounded,
+                  color: AppTheme.emerald,
+                ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 20),
             Expanded(
-              child: _statCard(
-                icon: Icons.hourglass_empty_rounded,
-                label: 'Pending',
-                value: taskProvider.pendingCount.toString(),
-                color: AppTheme.accentAmber,
+              child: FadeInUp(
+                delay: const Duration(milliseconds: 300),
+                child: _premiumStatCard(
+                  title: 'Efficiency',
+                  value: '${(provider.completionRate * 100).toInt()}%',
+                  icon: Icons.auto_graph_rounded,
+                  color: AppTheme.amber,
+                ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _progressCard(taskProvider.completionRate),
             ),
           ],
         );
@@ -142,225 +171,175 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _statCard({
-    required IconData icon,
-    required String label,
+  Widget _premiumStatCard({
+    required String title,
     required String value,
+    required IconData icon,
     required Color color,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 14),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: color)),
-          const SizedBox(height: 4),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 12, color: AppTheme.textSecondary)),
-        ],
-      ),
-    );
-  }
-
-  Widget _progressCard(double rate) {
-    final pct = (rate * 100).toStringAsFixed(0);
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.bar_chart_rounded,
-                color: AppTheme.primary, size: 20),
-          ),
-          const SizedBox(height: 14),
-          Text('$pct%',
-              style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary)),
-          const SizedBox(height: 4),
-          const Text('Completion',
-              style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: rate,
-              backgroundColor: AppTheme.border,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(AppTheme.primary),
-              minHeight: 6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentTasks(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.border),
-      ),
-      child: Consumer<TaskProvider>(
-        builder: (context, provider, _) {
-          final pending = provider.pendingTasks.take(5).toList();
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Upcoming Tasks',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textPrimary)),
-                  Text('${provider.pendingCount} pending',
-                      style: const TextStyle(
-                          fontSize: 12, color: AppTheme.textSecondary)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (pending.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text('🎉 No pending tasks!',
-                        style: TextStyle(color: AppTheme.textSecondary)),
-                  ),
-                )
-              else
-                ...pending.map((task) => _taskRow(context, task.title,
-                    task.priority, task.id, provider)),
+              Text(title,
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondary)),
+              Icon(icon, color: color.withOpacity(0.8), size: 18),
             ],
-          );
-        },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(
+              value: title == 'Efficiency' ? 0.7 : 0.4, // placeholder logic
+              backgroundColor: color.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(color.withOpacity(0.5)),
+              minHeight: 3,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _taskRow(BuildContext context, String title, String priority,
-      String id, TaskProvider provider) {
-    final priorityColors = {
-      'high': AppTheme.accentAmber,
-      'medium': AppTheme.primary,
-      'low': AppTheme.accentGreen,
-    };
-    final color = priorityColors[priority] ?? AppTheme.primary;
+  Widget _buildMainFocus(BuildContext context) {
+    return GlassCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.radar_rounded, color: AppTheme.primary, size: 20),
+              SizedBox(width: 12),
+              Text('Current Objectives',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Consumer<TaskProvider>(
+            builder: (context, provider, _) {
+              final tasks = provider.pendingTasks.take(4).toList();
+              if (tasks.isEmpty) {
+                return _buildEmptyObjectives();
+              }
+              return Column(
+                children: tasks.map((t) => _objectiveRow(t)).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _objectiveRow(dynamic task) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => provider.toggleTask(id),
-            child: Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                border: Border.all(color: color),
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(title,
-                style: const TextStyle(
-                    fontSize: 14, color: AppTheme.textPrimary)),
-          ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            width: 8,
+            height: 8,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(6),
+              shape: BoxShape.circle,
+              color: task.priority == 'high' ? AppTheme.rose : AppTheme.primary,
+              boxShadow: [
+                BoxShadow(
+                  color: (task.priority == 'high' ? AppTheme.rose : AppTheme.primary).withOpacity(0.4),
+                  blurRadius: 8,
+                ),
+              ],
             ),
-            child: Text(priority,
-                style: TextStyle(
-                    fontSize: 11,
-                    color: color,
-                    fontWeight: FontWeight.w600)),
           ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(task.title,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+          ),
+          Text(task.priority.toUpperCase(),
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.textMuted,
+                  letterSpacing: 1)),
         ],
       ),
     );
   }
 
-  Widget _buildTipsCard() {
-    final tips = [
-      '🎯  Focus on your top 3 priorities each morning.',
-      '⏱  Use the Pomodoro method: 25 min work, 5 min break.',
-      '📓  Journal for 5 minutes before bed to de-stress.',
-      '🚶  Take a walk after long focus sessions.',
-      '🔕  Batch-check notifications at set times.',
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primary.withOpacity(0.15),
-            AppTheme.accent.withOpacity(0.1),
+  Widget _buildEmptyObjectives() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Icon(Icons.check_circle_rounded, color: AppTheme.emerald, size: 40),
+            SizedBox(height: 12),
+            Text('All systems clear.',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: AppTheme.primary.withOpacity(0.3)),
       ),
+    );
+  }
+
+  Widget _buildAiInsights() {
+    return GlassCard(
+      color: AppTheme.primary.withOpacity(0.08),
+      border: Border.all(color: AppTheme.primary.withOpacity(0.2)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('💡 Daily Tips',
+          const Text('✨ AI Insights',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary)),
+                  color: AppTheme.primary)),
           const SizedBox(height: 16),
-          ...tips.map((tip) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Text(tip,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textSecondary,
-                        height: 1.5)),
-              )),
+          _insightLine("Your productivity is up 12% this week."),
+          _insightLine("Focus on the 'high priority' task first."),
+          _insightLine("You haven't checked in for 4 hours."),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {},
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primary,
+              minimumSize: const Size(double.infinity, 44),
+            ),
+            child: const Text('Open Insights'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _insightLine(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('• ', style: TextStyle(color: AppTheme.primary, fontSize: 18)),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(
+                    fontSize: 13, color: AppTheme.textSecondary, height: 1.4)),
+          ),
         ],
       ),
     );

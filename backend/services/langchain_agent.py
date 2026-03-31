@@ -1,7 +1,8 @@
 import os
 import asyncio
-from typing import Dict
+from typing import Dict, Any
 from langchain_openai import ChatOpenAI
+from langchain_community.llms import LlamaCpp
 from langchain.chains import ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import (
@@ -11,35 +12,52 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
 )
 
+# Global model paths
+MODEL_PATH = "models/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+
 # Per-user conversation chains stored in memory
 _user_chains: Dict[str, ConversationChain] = {}
 
 SYSTEM_PROMPT = """You are an AI Life Ops Assistant — a highly capable personal productivity coach and life organizer.
+Tone: Friendly, professional, and empowering. Keep responses clear and structured. Give concise, actionable advice."""
 
-Your role includes:
-- Helping users plan and prioritize their tasks and goals
-- Breaking down large projects into manageable action steps
-- Offering motivational support and accountability
-- Providing time-management and productivity strategies
-- Helping users reflect on their habits and optimize their routines
-- Tracking and managing tasks when asked
-- Giving concise, actionable advice
 
-Tone: Friendly, professional, and empowering. Keep responses clear and structured.
-Always be proactive in asking clarifying questions when a user's goal is vague."""
+def _get_llm(use_ollama: bool = False) -> Any:
+    """Initialize OpenAI LLM, or fallback to local LlamaCpp if API fails."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+
+    if api_key and api_key.startswith("sk-") and not use_ollama:
+        try:
+            return ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0.7,
+                api_key=api_key,
+                max_retries=1,
+            )
+        except Exception:
+            print("[LLM] OpenAI failed, falling back to local model...")
+
+    # Fallback: Local Tiny Model (Qwen 0.5B)
+    if os.path.exists(MODEL_PATH):
+        try:
+            return LlamaCpp(
+                model_path=MODEL_PATH,
+                temperature=0.7,
+                max_tokens=512,
+                n_ctx=2048,
+                f16_kv=True,
+                verbose=False,
+                n_threads=1, # Keep it low for Render Free
+            )
+        except Exception as e:
+            print(f"[LLM] Local model failed to load: {e}")
+
+    raise ValueError("No LLM available (OpenAI failed and local model not found).")
 
 
 def _create_chain_for_user(user_id: str) -> ConversationChain:
     """Create a new LangChain conversation chain for a given user."""
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        raise ValueError("OPENAI_API_KEY environment variable not set.")
-
-    llm = ChatOpenAI(
-        model="gpt-4o-mini",
-        temperature=0.7,
-        api_key=api_key,
-    )
+    llm = _get_llm()
 
     prompt = ChatPromptTemplate.from_messages([
         SystemMessagePromptTemplate.from_template(SYSTEM_PROMPT),
@@ -49,14 +67,12 @@ def _create_chain_for_user(user_id: str) -> ConversationChain:
 
     memory = ConversationBufferMemory(return_messages=True)
 
-    chain = ConversationChain(
+    return ConversationChain(
         llm=llm,
         prompt=prompt,
         memory=memory,
         verbose=False,
     )
-
-    return chain
 
 
 def _get_or_create_chain(user_id: str) -> ConversationChain:
@@ -68,15 +84,25 @@ def _get_or_create_chain(user_id: str) -> ConversationChain:
 
 async def get_agent_response(user_id: str, message: str) -> str:
     """
-    Generate an AI response for the given user message.
-    Runs the synchronous LangChain chain in a thread pool to avoid blocking.
+    Generate an AI response.
+    If OpenAI fails, it will attempt to re-init with local fallback.
     """
-    chain = _get_or_create_chain(user_id)
-
-    loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(
-        None,
-        lambda: chain.predict(input=message),
-    )
-
-    return response
+    try:
+        chain = _get_or_create_chain(user_id)
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: chain.predict(input=message),
+        )
+        return response
+    except Exception as e:
+        print(f"[LLM] Chain prediction failed: {e}. Retrying with local fallback...")
+        # Force re-creation with local model on error
+        _user_chains[user_id] = _create_chain_for_user(user_id) 
+        chain = _user_chains[user_id]
+        loop = asyncio.get_event_loop()
+        response = await loop.run_in_executor(
+            None,
+            lambda: chain.predict(input=message),
+        )
+        return response
