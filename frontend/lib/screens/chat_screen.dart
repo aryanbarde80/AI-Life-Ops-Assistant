@@ -187,13 +187,25 @@ import '../widgets/thought_visualization.dart';
                   ? Text(msg.content,
                       style: const TextStyle(
                           color: Colors.black, fontWeight: FontWeight.w600))
-                  : MarkdownBody(
-                      data: msg.content,
-                      styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(
-                            color: AppTheme.textPrimary, height: 1.6),
-                        strong: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        MarkdownBody(
+                          data: msg.content,
+                          styleSheet: MarkdownStyleSheet(
+                            p: const TextStyle(color: AppTheme.textPrimary, height: 1.6),
+                            strong: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('NEURAL CONFIDENCE: ', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.textMuted)),
+                            Text('98%', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: AppTheme.primary.withOpacity(0.8))),
+                          ],
+                        ),
+                      ],
                     ),
             ),
           ),
