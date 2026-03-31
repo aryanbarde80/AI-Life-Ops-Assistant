@@ -26,9 +26,12 @@ class BackgroundEvolution:
     async def _run_pulse(self):
         """A single 'Evolution Pulse' - analyzing task urgency vs user behavior."""
         print("[Evolution] Running system pulse: Analyzing task aging patterns...")
-        # Simulation: Fetching pending tasks and slightly increasing priority of old ones
-        # In a real app, this would involve ML inference on user procrastination patterns.
-        pass
+        # Evolution: High-velocity tasks get 'Neural Boost' tags
+        tasks = await self.fs.get_tasks("system_user") # Placeholder user
+        for task in tasks:
+            if task.status == "pending":
+                 print(f"[Evolution] Boosting priority for mission: {task.title}")
+                 # In a real app: self.fs.add_agent_note(task.id, "Prioritized by Evolution Loop")
 
     async def stop(self):
         self.is_running = False

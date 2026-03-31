@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package acos;
+
+service InferenceService {
+  rpc PredictTask(PredictRequest) returns (PredictResponse);
+}
+
+message PredictRequest {
+  string user_id = 1;
+  string query = 2;
+  float complexity = 3;
+}
+
+message PredictResponse {
+  float success_probability = 1;
+  int32 estimated_time_minutes = 2;
+  float confidence_score = 3;
+  string intent = 4;
+}
+
+service PerfService {
+  rpc GetHealth(HealthRequest) returns (HealthResponse);
+}
+
+message HealthRequest {
+  string service_id = 1;
+}
+
+message HealthResponse {
+  float cpu_usage = 1;
+  string memory_usage = 2;
+  int32 latency_ms = 3;
+}

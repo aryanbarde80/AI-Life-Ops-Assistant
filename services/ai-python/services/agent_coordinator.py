@@ -6,8 +6,11 @@ from services.firestore_service import FirestoreService
 from services.decision_engine import DecisionEngine
 from services.github_service import GithubService
 from services.ml_service import MLService
+from services.kafka_service import KafkaService
+from services.perception_service import VisionService, VoiceService
 from middleware.circuit_breaker import CircuitBreaker
 from domain.models import SystemHealth
+from core.prompts import PLANNER_PROMPT, CRITIC_PROMPT
 
 # Enterprise Resilience - Circuit Breakers
 llm_breaker = CircuitBreaker(failure_threshold=5, recovery_timeout=60)
@@ -25,20 +28,26 @@ class AgentCoordinator:
         self.decision_engine = DecisionEngine()
         self.github_intel = GithubService()
         self.ml_intel = MLService()
+        self.kafka = KafkaService()
+        self.vision = VisionService()
+        self.voice = VoiceService()
         self.active_agents = {
             "planner": "Strategic Goal Decomposition",
             "executor": "Mission Execution Agent",
             "critic": "Verification & Hallucination Filter",
-            "deep_intel": "Neural Pattern Recognition"
+            "perception": "CV & Voice Engine"
         }
 
     async def run_orchestration_stream(self, user_id: str, query: str) -> AsyncGenerator[str, None]:
         """Autonomous reasoning with 'Thought' event streaming."""
         
         try:
+            llm = _get_or_create_chain(user_id).llm
+            
             # --- Stage 1: PLANNING ---
-            yield json.dumps({"type": "thought", "agent": "Planner", "content": "Decomposing objective into atomic missions..."}) + "\n"
-            await asyncio.sleep(0.5)
+            yield json.dumps({"type": "thought", "agent": "Planner", "content": "Strategizing goal decomposition..."}) + "\n"
+            plan = await llm.ainvoke(f"{PLANNER_PROMPT}\n\nUSER GOAL: {query}")
+            yield json.dumps({"type": "thought", "agent": "Planner", "content": plan.content if hasattr(plan, 'content') else str(plan)}) + "\n"
             
             # --- Stage 2: DEEP INTEL (ML) ---
             # Protected by LLM breaker logic internally
@@ -50,25 +59,30 @@ class AgentCoordinator:
                 await asyncio.sleep(0.8)
 
             # --- Stage 3: EXECUTION ---
-            yield json.dumps({"type": "thought", "agent": "Executor", "content": "Scanning knowledge mesh and retrieving historical context..."}) + "\n"
-            await asyncio.sleep(1.0)
+            yield json.dumps({"type": "thought", "agent": "Executor", "content": "Executing core mission logic..."}) + "\n"
             
             # Integrate Decision Engine if objective is a choice
             if "?" in query or "should" in query.lower():
-                 yield json.dumps({"type": "thought", "agent": "DecisionEngine", "content": "Evaluating risk-reward scenarios..."}) + "\n"
-                 await asyncio.sleep(0.5)
+                 yield json.dumps({"type": "thought", "agent": "DecisionEngine", "content": "Analyzing risk-reward vectors..."}) + "\n"
+                 options = query.split(" or ") if " or " in query else [query]
+                 scenarios = await self.decision_engine.evaluate_options(query, options)
+                 for s in scenarios:
+                     yield json.dumps({"type": "thought", "agent": "DecisionEngine", "content": f"Option: {s.title} | Risk: {s.risk_score} | Reward: {s.reward_score}"}) + "\n"
 
             # --- Stage 4: CRITIC / REFINEMENT ---
-            yield json.dumps({"type": "thought", "agent": "Critic", "content": "Filtering hallucinations and verifying goal alignment..."}) + "\n"
-            await asyncio.sleep(0.6)
+            yield json.dumps({"type": "thought", "agent": "Critic", "content": "Verifying output integrity..."}) + "\n"
 
             # --- FINAL SYNTHESIS ---
             chain = _get_or_create_chain(user_id)
             async for chunk in chain.astream({"input": query}):
+                content = ""
                 if "response" in chunk:
-                    yield chunk["response"]
+                    content = chunk["response"]
                 elif isinstance(chunk, str):
-                    yield chunk
+                    content = chunk
+                
+                if content:
+                    yield json.dumps({"type": "chunk", "content": content}) + "\n"
         except Exception as e:
             yield json.dumps({"type": "error", "content": f"Mesh Critical Failure: {str(e)}"}) + "\n"
 

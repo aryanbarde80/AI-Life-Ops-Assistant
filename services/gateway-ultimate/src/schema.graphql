@@ -1,0 +1,49 @@
+type Query {
+  chat(userId: String!, query: String!): AIResponse
+  tasks(userId: String!): [Task]
+  analytics(userId: String!): AnalyticsData
+  systemHealth: [SystemHealth]
+}
+
+type Mutation {
+  sendMessage(userId: String!, content: String!): AIResponse
+  createTask(userId: String!, title: String!, priority: Int!): Task
+}
+
+type AIResponse {
+  id: ID!
+  content: String!
+  dtInsight: DigitalTwinInsight
+  thoughts: [ThoughtLog]
+}
+
+type Task {
+  id: ID!
+  title: String!
+  priority: Int!
+  successProb: Float
+  estTime: Int
+}
+
+type AnalyticsData {
+  userId: String!
+  avgScore: Float!
+  trend: String!
+  burnoutRisk: String!
+}
+
+type DigitalTwinInsight {
+  prediction: String!
+  confidence: Float!
+}
+
+type ThoughtLog {
+  agent: String!
+  content: String!
+}
+
+type SystemHealth {
+  service: String!
+  cpu: Float!
+  latency: Int!
+}

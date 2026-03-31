@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 class ChatProvider extends ChangeNotifier {
   final List<ChatMessage> _messages = [];
   final List<Map<String, String>> _thoughtLogs = [];
+  Map<String, String>? _digitalTwinInsight;
   bool _isLoading = false;
   bool _isThinking = false;
   String? _error;
@@ -15,6 +16,7 @@ class ChatProvider extends ChangeNotifier {
 
   List<ChatMessage> get messages => List.unmodifiable(_messages);
   List<Map<String, String>> get thoughtLogs => List.unmodifiable(_thoughtLogs);
+  Map<String, String>? get digitalTwinInsight => _digitalTwinInsight;
   bool get isLoading => _isLoading;
   bool get isThinking => _isThinking;
   String? get error => _error;
@@ -23,6 +25,7 @@ class ChatProvider extends ChangeNotifier {
     if (content.trim().isEmpty) return;
     _error = null;
     _thoughtLogs.clear();
+    _digitalTwinInsight = null;
 
     // Add user message
     _messages.add(ChatMessage(
@@ -59,6 +62,12 @@ class ChatProvider extends ChangeNotifier {
               'agent': data['agent'],
               'content': data['content'],
             });
+            notifyListeners();
+          } else if (data['type'] == 'digital_twin') {
+            _digitalTwinInsight = {
+              'prediction': data['prediction'],
+              'confidence': data['confidence'].toString(),
+            };
             notifyListeners();
           } else if (data['type'] == 'chunk') {
             _isThinking = false;

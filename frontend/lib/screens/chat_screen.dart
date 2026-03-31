@@ -96,6 +96,8 @@ import '../widgets/thought_visualization.dart';
                   children: [
                     if (provider.isThinking)
                       ThoughtVisualization(logs: provider.thoughtLogs),
+                    if (provider.digitalTwinInsight != null)
+                      _buildDigitalTwinInsight(provider.digitalTwinInsight!),
                     Expanded(
                       child: ListView.builder(
                         controller: _scrollController,
@@ -257,6 +259,40 @@ import '../widgets/thought_visualization.dart';
             ),
           ),
         ],
+      ),
+    );
+  }
+
+    );
+  }
+
+  Widget _buildDigitalTwinInsight(Map<String, String> insight) {
+    return FadeInDown(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+        child: GlassCard(
+          borderRadius: 16,
+          color: AppTheme.primary.withOpacity(0.05),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.hub_rounded, color: AppTheme.primary, size: 16),
+                  const SizedBox(width: 8),
+                  const Text('DIGITAL TWIN ANALYSIS', style: TextStyle(
+                    fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: AppTheme.primary
+                  )),
+                  const Spacer(),
+                  Text('CONFIDENCE: ${insight['confidence']}', style: const TextStyle(fontSize: 8, color: AppTheme.textMuted)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(insight['prediction'] ?? '', style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary, height: 1.4)),
+            ],
+          ),
+        ),
       ),
     );
   }

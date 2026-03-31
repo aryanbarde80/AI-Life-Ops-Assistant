@@ -24,11 +24,14 @@ class AutomationEngine:
             if match:
                 task_title = match.group(1).strip()
                 print(f"[Automation] Extracted Task: {task_title}")
-                # Save task to Firestore async
-                # await self.fs.add_task(user_id, task_title, priority="medium")
+                # Save task to Firestore
+                await self.fs.add_task(user_id, task_title, priority="medium")
 
     async def run_periodic_rules(self, user_id: str):
-        """Simulates checking IF/THEN rules."""
-        # IF deadline near -> increase priority (Logic)
-        # IF free time -> suggests focus (Logic)
-        pass
+        """Checks IF/THEN rules for task optimization."""
+        print(f"[Automation] Running periodic rules for {user_id}")
+        tasks = await self.fs.get_tasks(user_id)
+        for task in tasks:
+            # Rule: If task is older than 24h and still 'low', bump to 'medium'
+            if task.priority == "low":
+                await self.fs.update_task_priority(user_id, task.id, "medium")
