@@ -1,0 +1,10 @@
+.git
+.env
+*.env
+__pycache__
+*.pyc
+.dart_tool
+frontend/build
+backend/frontend_build
+node_modules
+.DS_Store

@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from routes.chat import router as chat_router
+import os
 
 app = FastAPI(
     title="AI Life Ops Assistant",
@@ -18,10 +20,15 @@ app.add_middleware(
 
 app.include_router(chat_router, prefix="")
 
+# Serve static files from the 'frontend_build' directory
+# This allows us to run everything in a single container
+if os.path.exists("frontend_build"):
+    app.mount("/", StaticFiles(directory="frontend_build", html=True), name="frontend")
+
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "service": "AI Life Ops Assistant Backend"}
+    return {"status": "ok", "service": "AI Life Ops Assistant"}
 
 
 @app.get("/")
