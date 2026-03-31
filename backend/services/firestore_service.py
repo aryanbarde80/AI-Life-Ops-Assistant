@@ -135,6 +135,49 @@ async def get_tasks(user_id: str):
         print(f"[Firestore] Warning: could not retrieve tasks for {user_id}: {e}")
         return []
 
+async def get_user_stats(self, user_id: str) -> dict:
+    """Retrieves XP, Level, and Streak stats for a user."""
+    try:
+        db = get_db()
+        doc = await db.collection("users").document(user_id).get()
+        if doc.exists:
+            data = doc.to_dict()
+            return {
+                "xp": data.get("xp", 0),
+                "level": data.get("level", 1),
+                "streak": data.get("streak", 0),
+                "last_active": data.get("last_active"),
+            }
+        return {"xp": 0, "level": 1, "streak": 0}
+    except Exception as e:
+        print(f"[Firestore] Stats error: {e}")
+        return {"xp": 0, "level": 1, "streak": 0}
+
+async def add_xp(self, user_id: str, amount: int) -> dict:
+    """Increments user XP and handles leveling logic (1000 XP per level)."""
+    try:
+        db = get_db()
+        user_ref = db.collection("users").document(user_id)
+        
+        @firestore.async_transactional
+        async def update_in_transaction(transaction, ref):
+            snapshot = await ref.get(transaction=transaction)
+            current_xp = snapshot.get("xp") if snapshot.exists else 0
+            new_xp = current_xp + amount
+            new_level = (new_xp // 1000) + 1
+            
+            transaction.set(ref, {
+                "xp": new_xp,
+                "level": new_level,
+                "last_active": firestore.SERVER_TIMESTAMP,
+            }, merge=True)
+            return {"xp": new_xp, "level": new_level}
+
+        return await update_in_transaction(db.transaction(), user_ref)
+    except Exception as e:
+        print(f"[Firestore] XP update failed: {e}")
+        return {}
+
 
 async def get_recent_context(user_id: str, limit: int = 5) -> str:
     """Fetches recent tasks and messages to provide context for RAG."""

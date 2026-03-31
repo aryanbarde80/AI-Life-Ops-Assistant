@@ -12,19 +12,15 @@ from langchain.prompts import (
     SystemMessagePromptTemplate,
 )
 
-# Global model paths
-MODEL_PATH = "models/qwen2.5-0.5b-instruct-q4_k_m.gguf"
+from core.config import settings
+from core.prompts import SYSTEM_PROMPT
 
 # Per-user conversation chains stored in memory
 _user_chains: Dict[str, ConversationChain] = {}
 
-SYSTEM_PROMPT = """You are an AI Life Ops Assistant — a highly capable personal productivity coach and life organizer.
-Tone: Friendly, professional, and empowering. Keep responses clear and structured. Give concise, actionable advice."""
-
-
 def _get_llm(use_ollama: bool = False) -> Any:
     """Initialize OpenAI LLM, or fallback to local LlamaCpp if API fails."""
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = settings.OPENAI_API_KEY
 
     if api_key and api_key.startswith("sk-") and not use_ollama:
         try:
@@ -34,29 +30,28 @@ def _get_llm(use_ollama: bool = False) -> Any:
                 api_key=api_key,
                 max_retries=1,
             )
-        except Exception:
-            print("[LLM] OpenAI failed, falling back to local model...")
+        except Exception as e:
+            print(f"[LLM] OpenAI failed: {e}. Falling back...")
 
-    # Fallback: Local Tiny Model (Qwen 0.5B)
-    if os.path.exists(MODEL_PATH):
+    # Fallback: Local Tiny Model
+    if os.path.exists(settings.MODEL_PATH):
         try:
             return LlamaCpp(
-                model_path=MODEL_PATH,
+                model_path=settings.MODEL_PATH,
                 temperature=0.7,
                 max_tokens=512,
                 n_ctx=2048,
                 f16_kv=True,
                 verbose=False,
-                n_threads=1, # Keep it low for Render Free
+                n_threads=1,
             )
         except Exception as e:
-            print(f"[LLM] Local model failed to load: {e}")
+            print(f"[LLM] Local model failed load: {e}")
 
-    raise ValueError("No LLM available (OpenAI failed and local model not found).")
-
+    raise ValueError("System Shutdown: No LLM available.")
 
 def _create_chain_for_user(user_id: str) -> ConversationChain:
-    """Create a new LangChain conversation chain for a given user."""
+    """Enterprise chain creation with modular prompts."""
     llm = _get_llm()
 
     prompt = ChatPromptTemplate.from_messages([
@@ -66,13 +61,7 @@ def _create_chain_for_user(user_id: str) -> ConversationChain:
     ])
 
     memory = ConversationBufferMemory(return_messages=True)
-
-    return ConversationChain(
-        llm=llm,
-        prompt=prompt,
-        memory=memory,
-        verbose=False,
-    )
+    return ConversationChain(llm=llm, prompt=prompt, memory=memory, verbose=False)
 
 
 def _get_or_create_chain(user_id: str) -> ConversationChain:
@@ -100,6 +89,10 @@ async def get_agent_response(user_id: str, message: str) -> str:
             None,
             lambda: chain.predict(input=enriched_message),
         )
+        
+        # Award 50 XP per message for engagement (Async)
+        asyncio.create_task(fs.add_xp(user_id, 50))
+        
         return response
     except Exception as e:
         print(f"[LLM] Chain prediction failed: {e}. Retrying with local fallback...")
