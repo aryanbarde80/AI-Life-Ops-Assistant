@@ -37,6 +37,9 @@ class AiLifeOpsApp extends StatelessWidget {
   }
 }
 
+import 'widgets/command_palette.dart';
+import 'package:flutter/services.dart';
+
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -47,12 +50,15 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   bool _showLanding = true;
+  bool _showPalette = false;
 
   final List<Widget> _screens = const [
     DashboardScreen(),
     ChatScreen(),
     TasksScreen(),
   ];
+
+  void _togglePalette() => setState(() => _showPalette = !_showPalette);
 
   @override
   Widget build(BuildContext context) {
@@ -62,55 +68,76 @@ class _MainShellState extends State<MainShell> {
       );
     }
 
-    return Scaffold(
-      body: Row(
-        children: [
-          NavigationRail(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() => _selectedIndex = index);
-            },
-            extended: MediaQuery.of(context).size.width > 900,
-            backgroundColor: AppTheme.surface,
-            indicatorColor: AppTheme.primary.withOpacity(0.2),
-            leading: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: GestureDetector(
-                onTap: () => setState(() => _showLanding = true),
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.primary, AppTheme.accent],
+    return Shortcuts(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyK): const Intent.doNothing(),
+      },
+      child: Actions(
+        actions: {
+          Intent: CallbackAction<Intent>(onInvoke: (intent) {
+            _togglePalette();
+            return null;
+          }),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Stack(
+            children: [
+              Scaffold(
+                body: Row(
+                  children: [
+                    NavigationRail(
+                      selectedIndex: _selectedIndex,
+                      onDestinationSelected: (index) {
+                        setState(() => _selectedIndex = index);
+                      },
+                      extended: MediaQuery.of(context).size.width > 900,
+                      backgroundColor: AppTheme.surface,
+                      indicatorColor: AppTheme.primary.withOpacity(0.2),
+                      leading: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 24),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _showLanding = true),
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [AppTheme.primary, AppTheme.accent],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.bolt_rounded, color: Colors.black, size: 26),
+                          ),
+                        ),
+                      ),
+                      destinations: const [
+                        NavigationRailDestination(
+                          icon: Icon(Icons.dashboard_outlined),
+                          selectedIcon: Icon(Icons.dashboard_rounded, color: AppTheme.primary),
+                          label: Text('Dashboard'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.chat_bubble_outline_rounded),
+                          selectedIcon: Icon(Icons.chat_bubble_rounded, color: AppTheme.primary),
+                          label: Text('AI Chat'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.checklist_outlined),
+                          selectedIcon: Icon(Icons.checklist_rounded, color: AppTheme.primary),
+                          label: Text('Tasks'),
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(Icons.bolt_rounded, color: Colors.black, size: 26),
+                    const VerticalDivider(width: 1, thickness: 1, color: AppTheme.border),
+                    Expanded(child: _screens[_selectedIndex]),
+                  ],
                 ),
               ),
-            ),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard_outlined),
-                selectedIcon: Icon(Icons.dashboard_rounded, color: AppTheme.primary),
-                label: Text('Dashboard'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.chat_bubble_outline_rounded),
-                selectedIcon: Icon(Icons.chat_bubble_rounded, color: AppTheme.primary),
-                label: Text('AI Chat'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.checklist_outlined),
-                selectedIcon: Icon(Icons.checklist_rounded, color: AppTheme.primary),
-                label: Text('Tasks'),
-              ),
+              if (_showPalette) CommandPalette(onClose: _togglePalette),
             ],
           ),
-          const VerticalDivider(width: 1, thickness: 1, color: AppTheme.border),
-          Expanded(child: _screens[_selectedIndex]),
-        ],
+        ),
       ),
     );
   }
