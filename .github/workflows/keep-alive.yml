@@ -1,0 +1,18 @@
+name: Keep Alive
+
+on:
+  schedule:
+    # Runs every 14 minutes to prevent Render Free tier from sleeping (15m idle limit)
+    - cron: '*/14 * * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Server
+        run: |
+          # The user needs to set the RENDER_URL secret in GitHub Actions
+          # or we can use a hardcoded placeholder if they prefer.
+          # For now, we'll try to use a secret for security.
+          curl -s "${{ secrets.RENDER_URL }}/health" || echo "Ping failed"

@@ -131,8 +131,15 @@ In the Render dashboard for the new service, go to **Environment** and add:
 - `OPENAI_API_KEY`: Your key.
 - `FIREBASE_CONFIG`: Your base64-encoded service account JSON.
 
-### 4. Done!
-Once the build finishing, your app will be live on a single URL. No more hardcoded IP addresses or multiple services!
+### 4. Stay Awake (Prevent Sleep)
+Render's Free tier sleeps after 15 minutes of inactivity. I've added a **GitHub Action** to keep your server awake by pinging it every 14 minutes.
+
+To activate it:
+1.  Go to your GitHub Repo → **Settings** → **Secrets and variables** → **Actions**.
+2.  Click **New repository secret**.
+3.  **Name:** `RENDER_URL`
+4.  **Value:** Your Render app URL (e.g., `https://ai-life-ops-assistant.onrender.com`)
+5.  **Save.** Now GitHub will automatically ping your server and it won't sleep! 🚀
 
 ---
 
