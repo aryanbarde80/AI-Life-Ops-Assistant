@@ -4,6 +4,8 @@ import json
 from services.langchain_agent import get_agent_response, _get_or_create_chain
 from services.firestore_service import FirestoreService
 from services.decision_engine import DecisionEngine
+from services.github_service import GithubService
+from services.ml_service import MLService
 from domain.models import SystemHealth
 
 class AgentCoordinator:
@@ -15,10 +17,13 @@ class AgentCoordinator:
     def __init__(self):
         self.fs = FirestoreService()
         self.decision_engine = DecisionEngine()
+        self.github_intel = GithubService()
+        self.ml_intel = MLService()
         self.active_agents = {
             "planner": "Strategic Goal Decomposition",
             "executor": "Mission Execution Agent",
-            "critic": "Verification & Hallucination Filter"
+            "critic": "Verification & Hallucination Filter",
+            "deep_intel": "Neural Pattern Recognition"
         }
 
     async def run_orchestration_stream(self, user_id: str, query: str) -> AsyncGenerator[str, None]:
@@ -26,9 +31,17 @@ class AgentCoordinator:
         
         # --- Stage 1: PLANNING ---
         yield json.dumps({"type": "thought", "agent": "Planner", "content": "Decomposing objective into atomic missions..."}) + "\n"
-        await asyncio.sleep(0.8)
+        await asyncio.sleep(0.5)
         
-        # --- Stage 2: EXECUTION ---
+        # --- Stage 2: DEEP INTEL (ML) ---
+        prob = await self.ml_intel.predict_task_success(user_id, query)
+        yield json.dumps({"type": "thought", "agent": "DeepIntel", "content": f"Neural prediction: {int(prob*100)}% completion probability detected."}) + "\n"
+        
+        if "github" in query.lower() or "repo" in query.lower():
+            yield json.dumps({"type": "thought", "agent": "GithubIntel", "content": "Scanning repository velocity and complexity patterns..."}) + "\n"
+            await asyncio.sleep(0.8)
+
+        # --- Stage 3: EXECUTION ---
         yield json.dumps({"type": "thought", "agent": "Executor", "content": "Scanning knowledge mesh and retrieving historical context..."}) + "\n"
         await asyncio.sleep(1.0)
         

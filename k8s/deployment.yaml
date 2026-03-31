@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-life-ops-backend
+  labels:
+    app: ai-life-ops
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ai-life-ops
+  template:
+    metadata:
+      labels:
+        app: ai-life-ops
+    spec:
+      containers:
+      - name: backend
+        image: aryanbarde80/ai-life-ops:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: ai-life-ops-secrets
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-life-ops-service
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 8000
+  selector:
+    app: ai-life-ops
