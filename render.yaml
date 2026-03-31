@@ -1,17 +1,49 @@
 services:
-  # ─────────────────────────────────────────────
-  #  Unified Service (Frontend + Backend)
-  # ─────────────────────────────────────────────
   - type: web
-    name: ai-life-ops-assistant
-    runtime: docker
-    dockerfilePath: Dockerfile
-    dockerContext: .
+    name: acos-gateway
+    env: docker
+    dockerfilePath: ./services/gateway-ultimate/Dockerfile
     plan: free
-    healthCheckPath: /health
-    envVars:
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: FIREBASE_CONFIG
-        sync: false
-    autoDeploy: true
+    branch: main
+  
+  - type: web
+    name: acos-ai-core
+    env: docker
+    dockerfilePath: ./services/ai-python/Dockerfile
+    plan: free
+    branch: main
+
+  - type: web
+    name: acos-ml-engine
+    env: docker
+    dockerfilePath: ./services/ml-python/Dockerfile
+    plan: free
+    branch: main
+
+  - type: web
+    name: acos-analytics-rust
+    env: docker
+    dockerfilePath: ./services/analytics-rust/Dockerfile
+    plan: free
+    branch: main
+
+  - type: web
+    name: acos-blog-engine
+    env: docker
+    dockerfilePath: ./services/blog-engine-node/Dockerfile
+    plan: free
+    branch: main
+
+  - type: web
+    name: acos-performance-go
+    env: docker
+    dockerfilePath: ./services/performance-go/Dockerfile
+    plan: free
+    branch: main
+
+  - type: web
+    name: acos-flutter-frontend
+    env: docker
+    dockerfilePath: ./frontend/Dockerfile
+    plan: free
+    branch: main
