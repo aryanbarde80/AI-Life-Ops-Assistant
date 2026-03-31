@@ -108,49 +108,31 @@ curl -X POST http://localhost:10000/chat \
 
 ---
 
-## 🚀 Deploy to Render
+## 🚀 Deploy to Render (The Easy Way)
 
-### Step 1 — Push to GitHub
+This project is configured for **Unified Deployment**. Your Frontend and Backend run in a single container on a single URL.
 
+### 1. Push to GitHub
+If you haven't yet, push your latest changes:
 ```bash
-git init
 git add .
-git commit -m "feat: initial production build"
-git remote add origin https://github.com/aryanbarde80/AI-Life-Ops-Assistant.git
-git push -u origin main
+git commit -m "feat: unified deployment"
+git push origin main
 ```
 
-### Step 2 — Connect on Render
+### 2. Connect on Render
+1. Log in to [render.com](https://render.com).
+2. Click **New → Blueprint**.
+3. Connect this GitHub repository.
+4. Render will read `render.yaml` and set everything up automatically.
 
-1. Log in to [render.com](https://render.com)
-2. Click **New → Blueprint** and connect your GitHub repo
-3. Render will detect `render.yaml` and create both services automatically
+### 3. Set Env Vars
+In the Render dashboard for the new service, go to **Environment** and add:
+- `OPENAI_API_KEY`: Your key.
+- `FIREBASE_CONFIG`: Your base64-encoded service account JSON.
 
-### Step 3 — Set Environment Variables
-
-In the Render dashboard for **ai-life-ops-backend**, set:
-
-| Key | Value |
-|-----|-------|
-| `OPENAI_API_KEY` | Your OpenAI key |
-| `FIREBASE_CONFIG` | Your base64 service account |
-
-### Step 4 — Update Frontend API URL
-
-Once the backend deploys, copy its Render URL (e.g., `https://ai-life-ops-backend.onrender.com`).
-
-In `frontend/Dockerfile`, update the build arg:
-
-```dockerfile
-RUN flutter build web --release \
-    --dart-define=API_BASE_URL=https://ai-life-ops-backend.onrender.com
-```
-
-Commit and push — Render will auto-redeploy the frontend.
-
-### Step 5 — Verify
-
-Visit your frontend Render URL and start chatting!
+### 4. Done!
+Once the build finishing, your app will be live on a single URL. No more hardcoded IP addresses or multiple services!
 
 ---
 
@@ -158,12 +140,12 @@ Visit your frontend Render URL and start chatting!
 
 | Feature | Description |
 |---------|-------------|
-| 💬 **AI Chat** | Conversational AI with persistent memory per session |
+| 📦 **Unified Container** | Frontend + Backend served from one port (10000) |
+| 💬 **AI Chat** | Conversational AI with persistent memory |
 | 📋 **Task Manager** | Add, complete, delete, filter by priority |
-| 📊 **Dashboard** | Live stats, completion rate, upcoming tasks, daily tips |
-| 🌙 **Dark UI** | Premium indigo/violet dark theme |
-| 📝 **Markdown** | AI responses rendered as rich markdown |
-| 🔒 **Firestore** | Chat history and tasks persisted to Firebase |
+| 📊 **Dashboard** | Live stats and progress bar |
+| 🌙 **Dark UI** | Premium indigo/violet theme |
+| 🔒 **Firestore** | Data persisted to Firebase |
 
 ---
 

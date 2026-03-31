@@ -1,31 +1,17 @@
 services:
   # ─────────────────────────────────────────────
-  #  Backend — FastAPI Web Service
+  #  Unified Service (Frontend + Backend)
   # ─────────────────────────────────────────────
   - type: web
-    name: ai-life-ops-backend
+    name: ai-life-ops-assistant
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerfilePath: Dockerfile
+    dockerContext: .
     plan: free
     healthCheckPath: /health
     envVars:
       - key: OPENAI_API_KEY
-        sync: false        # Set in Render dashboard
+        sync: false
       - key: FIREBASE_CONFIG
-        sync: false        # Set in Render dashboard (base64 service account)
+        sync: false
     autoDeploy: true
-
-  # ─────────────────────────────────────────────
-  #  Frontend — Flutter Web (nginx)
-  # ─────────────────────────────────────────────
-  - type: web
-    name: ai-life-ops-frontend
-    runtime: docker
-    dockerfilePath: ./frontend/Dockerfile
-    dockerContext: ./frontend
-    plan: free
-    autoDeploy: true
-    # NOTE: After deploying the backend on Render, update the API_BASE_URL
-    # build arg in frontend/Dockerfile to your backend's Render URL:
-    #   --dart-define=API_BASE_URL=https://ai-life-ops-backend.onrender.com
