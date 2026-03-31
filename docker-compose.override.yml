@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  gateway_ultimate:
+    environment:
+      - NODE_ENV=development
+      - DEBUG=acos:*
+  
+  ai_core_python:
+    environment:
+      - DEBUG=True
+      - LOG_LEVEL=DEBUG
+    volumes:
+      - ./services/ai-python:/app

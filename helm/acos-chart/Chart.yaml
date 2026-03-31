@@ -1,0 +1,17 @@
+apiVersion: v2
+name: acos-hyper-mesh
+description: A Helm chart for deploying the ACOS Universal God-Tier Platform Ecosystem
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+
+dependencies:
+  - name: postgresql
+    version: 12.1.0
+    repository: https://charts.bitnami.com/bitnami
+  - name: redis
+    version: 17.8.0
+    repository: https://charts.bitnami.com/bitnami
+  - name: kafka
+    version: 21.0.1
+    repository: https://charts.bitnami.com/bitnami

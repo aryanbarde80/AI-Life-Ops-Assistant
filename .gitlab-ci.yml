@@ -1,0 +1,34 @@
+stages:
+  - lint
+  - build
+  - test
+  - deploy_mesh
+
+variables:
+  DOCKER_DRIVER: overlay2
+  ACOS_CLUSTER_NAME: "acos-hyper-mesh"
+
+lint_all:
+  stage: lint
+  script:
+    - echo "Linting 7+ languages..."
+    - make lint
+
+build_services:
+  stage: build
+  script:
+    - docker-compose build
+
+test_orchestration:
+  stage: test
+  script:
+    - echo "Running Distributed Tracing Tests..."
+    - tox -e py310
+    - npm test
+
+deploy_k8s_cluster:
+  stage: deploy_mesh
+  script:
+    - make helm-install
+  only:
+    - main

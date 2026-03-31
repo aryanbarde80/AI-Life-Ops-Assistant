@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python requirements
-COPY backend/requirements.txt .
+COPY services/ai-python/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Download tiny local LLM (Qwen2.5-0.5B-Instruct-GGUF)
@@ -39,7 +39,7 @@ RUN mkdir -p models && \
     -o models/qwen2.5-0.5b-instruct-q4_k_m.gguf
 
 # Copy backend code
-COPY backend .
+COPY services/ai-python .
 
 # Copy Flutter build output to the 'frontend_build' folder (where FastAPI expects it)
 COPY --from=build-env /app/build/web ./frontend_build

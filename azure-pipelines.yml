@@ -1,0 +1,25 @@
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: Build_And_Test
+  jobs:
+  - job: Polyglot_Lint
+    steps:
+    - script: make lint
+      displayName: 'Global Polyglot Linting'
+  - job: Docker_Compose_Build
+    steps:
+    - script: docker-compose build
+      displayName: '10+ Services Containerization'
+
+- stage: Deploy_Master_Cluster
+  dependsOn: Build_And_Test
+  jobs:
+  - job: Helm_Release
+    steps:
+    - script: make helm-install
+      displayName: 'Deploy ACOS Universal to AKS'
