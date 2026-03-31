@@ -15,18 +15,24 @@ def _initialize_firestore() -> AsyncClient:
     if _db is not None:
         return _db
 
-    firebase_config_b64 = os.environ.get("FIREBASE_CONFIG")
-    if not firebase_config_b64:
+    firebase_config = os.environ.get("FIREBASE_CONFIG")
+    if not firebase_config:
         raise ValueError(
             "FIREBASE_CONFIG environment variable not set. "
-            "Set it to the base64-encoded Firebase service account JSON."
+            "Set it to the raw Firebase service account JSON or its base64-encoded string."
         )
 
     try:
-        service_account_json = base64.b64decode(firebase_config_b64).decode("utf-8")
-        service_account_dict = json.loads(service_account_json)
-    except Exception as e:
-        raise ValueError(f"Failed to decode FIREBASE_CONFIG: {e}")
+        # Try to parse as raw JSON first
+        service_account_dict = json.loads(firebase_config)
+    except json.JSONDecodeError:
+        # Fallback to base64 decoding if raw JSON parsing fails
+        try:
+            decoded_bytes = base64.b64decode(firebase_config)
+            service_account_json = decoded_bytes.decode("utf-8")
+            service_account_dict = json.loads(service_account_json)
+        except Exception as e:
+            raise ValueError(f"Failed to parse FIREBASE_CONFIG (tried raw JSON and Base64): {e}")
 
     if not firebase_admin._apps:
         cred = credentials.Certificate(service_account_dict)
